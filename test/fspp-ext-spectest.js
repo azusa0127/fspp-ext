@@ -23,6 +23,7 @@ describe.only( `fsextend Spec`, () => {
     FORBIDEN_PATH = process.platform === `win32` ? `C:/Windows/System32/0000` : `/dev/root`;
 
   before(() => {
+    if ( !fs.existsSync( SANDBOX_DIR_ABSOLUTE ) ) fs.mkdirSync( SANDBOX_DIR_ABSOLUTE);
     if ( fs.existsSync( LEVEL_3_TEXT_FILE_ABSOLUTE ) ) fs.unlinkSync( LEVEL_3_TEXT_FILE_ABSOLUTE );
     if ( fs.existsSync( LEVEL_3_EMPTY_DIR_ABSOLUTE ) ) fs.rmdirSync( LEVEL_3_EMPTY_DIR_ABSOLUTE );
   } );
