@@ -13,12 +13,12 @@ NodeJS v8.0.0 and up, as `fspp` is using `util.promisify` added in v8.0.0;
 
 ## Install
 ```shell
-npm install --save fs-extra
+npm install --save fspp-ext
 ```
 
 ## Usage
 ```javascript
-const fs = require(`fspp-ext`);
+const fs = require(`fspp-ext`); // fspp-ext is a drop-in replacement for fs or fspp.
 ```
 
 ## API
