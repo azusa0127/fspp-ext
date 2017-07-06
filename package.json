@@ -1,0 +1,41 @@
+{
+  "name": "fspp-ext",
+  "version": "1.0.0",
+  "description": "fspp with extended features.",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha -u bdd --timeout 10000 --colors test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/azusa0127/fspp-ext.git"
+  },
+  "keywords": [
+    "fs",
+    "drop-in",
+    "replacement",
+    "with",
+    "promisified",
+    "api",
+    "and",
+    "extra",
+    "features.",
+    "Fully",
+    "tested",
+    "with",
+    "mocha."
+  ],
+  "author": "Phoenix Song (github.com/azusa0127)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/azusa0127/fspp-ext/issues"
+  },
+  "homepage": "https://github.com/azusa0127/fspp-ext#readme",
+  "dependencies": {
+    "fspp": "^1.0.2"
+  },
+  "devDependencies": {
+    "chai": "^4.0.2",
+    "mocha": "^3.4.2"
+  }
+}
