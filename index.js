@@ -1,7 +1,7 @@
 /**
  * fspp-ext - fspp with extended features.
  *
- * @version 1.0.5
+ * @version 1.0.7
  * @author Phoenix Song (github.com/azusa0127)
  */
 const fs = require( `fspp` );
@@ -47,8 +47,8 @@ const ensurePathSync = dirPath => {
  */
 const subDestroyCall = async subPath => {
   await fs.access( subPath );
-  const dstat = await fs.stat( subPath );
-  if ( dstat.isFile() ) { await fs.unlink( subPath ); } else if ( dstat.isDirectory() ) {
+  const dstat = await fs.lstat( subPath );
+  if ( dstat.isFile() || dstat.isSymbolicLink()) { await fs.unlink( subPath ); } else if ( dstat.isDirectory() ) {
     const subfiles = await fs.readdir( subPath );
     await Promise.all( subfiles.map( x => subDestroyCall( path.join( subPath, x ) ) ) );
     await fs.rmdir( subPath );
@@ -75,8 +75,8 @@ const rm = async dirPath => {
  */
 const subDestroyCallSync = subPath => {
   fs.accessSync( subPath );
-  const dstat = fs.statSync( subPath );
-  if ( dstat.isFile() ) { fs.unlinkSync( subPath ); } else if ( dstat.isDirectory() ) {
+  const dstat = fs.lstatSync( subPath );
+  if ( dstat.isFile() || dstat.isSymbolicLink() ) { fs.unlinkSync( subPath ); } else if ( dstat.isDirectory() ) {
     const subfiles = fs.readdirSync( subPath );
     subfiles.forEach( x => subDestroyCallSync( path.join( subPath, x ) ) );
     fs.rmdirSync( subPath );
@@ -121,13 +121,13 @@ const subCopyCall = async ( subSrcPath, subDesPath, force = false ) => {
   await fs.access( subSrcPath );
   await ensurePath( path.dirname( subDesPath ) );
   if ( !force && await fs.exists( subDesPath ) ) throw new Error( `${subDesPath} already exists!` );
-  const sstat = await fs.stat( subSrcPath );
-  if ( sstat.isFile() ) {
+  const sstat = await fs.lstat( subSrcPath );
+  if ( sstat.isFile() || sstat.isSymbolicLink() ) {
     if ( await fs.exists( subDesPath ) ) await rm( subDesPath );
     await filecopy( subSrcPath, subDesPath );
   } else if ( sstat.isDirectory() ) {
     await ensurePath( subDesPath );
-    if ( ( await fs.stat( subDesPath ) ).isFile() ) await rm( subDesPath );
+    if ( !( await fs.lstat( subDesPath ) ).isDirectory() ) await rm( subDesPath );
     const subfiles = await fs.readdir( subSrcPath );
     await Promise.all( subfiles.map( x => subCopyCall( path.join( subSrcPath, x ), path.join( subDesPath, x ) ) ) );
   }
@@ -147,7 +147,7 @@ const cp = async ( srcPath, desPath, force = false ) => {
   if ( desPath.startsWith(srcPath) )
     throw new Error( `${desPath} is a sub-dirctory of ${srcPath}!` );
   try {
-    const dstat = await fs.stat( desPath );
+    const dstat = await fs.lstat( desPath );
     if ( dstat.isDirectory() && path.basename( srcPath ) !== path.basename( desPath ) )
       desPath = path.join( desPath, path.basename( srcPath ) );
   } catch ( e ) {
