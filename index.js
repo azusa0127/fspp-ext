@@ -1,12 +1,11 @@
 /**
  * fspp-ext - fspp with extended features.
  *
- * @version 1.0.2
+ * @version 1.0.4
  * @author Phoenix Song (github.com/azusa0127)
  */
 const fs = require( `fspp` );
 const path = require( `path` );
-
 /**
  * Create the Path tree if not exist.
  *
@@ -14,7 +13,6 @@ const path = require( `path` );
  */
 const ensurePath = async dirPath => {
   dirPath = path.isAbsolute( dirPath ) ? path.normalize(dirPath) : path.resolve( dirPath );
-
   try {
     await fs.access( dirPath );
   } catch ( error ) {
@@ -25,7 +23,6 @@ const ensurePath = async dirPath => {
     await fs.mkdir( dirPath );
   }
 };
-
 /**
  * Sync version of ensurePath(1)
  *
@@ -33,7 +30,6 @@ const ensurePath = async dirPath => {
  */
 const ensurePathSync = dirPath => {
   dirPath = path.isAbsolute( dirPath ) ? path.normalize(dirPath) : path.resolve( dirPath );
-
   try {
     fs.accessSync( dirPath );
   } catch ( error ) {
@@ -44,7 +40,6 @@ const ensurePathSync = dirPath => {
     fs.mkdirSync( dirPath );
   }
 };
-
 /**
  * Recursion Helper for rm(1)
  *
@@ -59,7 +54,6 @@ const subDestroyCall = async subPath => {
     await fs.rmdir( subPath );
   }
 };
-
 /**
  * Remove the target dir/file recursively.
  *
@@ -74,7 +68,6 @@ const rm = async dirPath => {
     throw new Error( `Destroying the FileSystem root ${dirPath} is forbidden!` );
   return subDestroyCall( dirPath );
 };
-
 /**
  *  Recursion Helper for rmSync(1)
  *
@@ -89,7 +82,6 @@ const subDestroyCallSync = subPath => {
     fs.rmdirSync( subPath );
   }
 };
-
 /**
  * Sync version of rm(1).
  *
@@ -104,7 +96,6 @@ const rmSync = dirPath => {
     throw new Error( `Destroying the FileSystem root ${dirPath} is forbidden!` );
   return subDestroyCallSync( dirPath );
 };
-
 /**
  * Copy single file from src to des by stream
  *
@@ -115,13 +106,10 @@ const filecopy = async ( src, des ) =>
   new Promise(( resolve, reject ) => {
     const srcStream = fs.createReadStream( src );
     srcStream.on( `error`, err => reject( err ) );
-
     const desStream = fs.createWriteStream( des );
     desStream.on( `error`, err => reject( err ) );
-
     srcStream.pipe( desStream ).on( `close`, () => resolve( des ) );
   } );
-
 /**
  * Recurse Helper for cp(3)
  *
@@ -133,7 +121,6 @@ const subCopyCall = async ( subSrcPath, subDesPath, force = false ) => {
   await fs.access( subSrcPath );
   await ensurePath( path.dirname( subDesPath ) );
   if ( !force && await fs.exists( subDesPath ) ) throw new Error( `${subDesPath} already exists!` );
-
   const sstat = await fs.stat( subSrcPath );
   if ( sstat.isFile() ) {
     if ( await fs.exists( subDesPath ) ) await rm( subDesPath );
@@ -145,7 +132,6 @@ const subCopyCall = async ( subSrcPath, subDesPath, force = false ) => {
     await Promise.all( subfiles.map( x => subCopyCall( path.join( subSrcPath, x ), path.join( subDesPath, x ) ) ) );
   }
 };
-
 /**
  * Copy dir/file recursively
  *
@@ -158,10 +144,8 @@ const subCopyCall = async ( subSrcPath, subDesPath, force = false ) => {
 const cp = async ( srcPath, desPath, force = false ) => {
   srcPath = path.isAbsolute( srcPath ) ? path.normalize(srcPath) : path.resolve( srcPath );
   desPath = path.isAbsolute( desPath ) ? path.normalize(desPath) : path.resolve( desPath );
-
   if ( desPath.startsWith(srcPath) )
     throw new Error( `${desPath} is a sub-dirctory of ${srcPath}!` );
-
   try {
     const dstat = await fs.stat( desPath );
     if ( dstat.isDirectory() && path.basename( srcPath ) !== path.basename( desPath ) )
@@ -171,6 +155,5 @@ const cp = async ( srcPath, desPath, force = false ) => {
   }
   return subCopyCall( srcPath, desPath, force );
 };
-
 // Exports
 module.exports = Object.assign(fs, { ensurePath, ensurePathSync, rm, rmSync, cp });
