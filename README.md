@@ -100,7 +100,11 @@ await fs.rm(`/tmp/hello/world/and/again`);
 ### Inherited fs/fspp APIs
 Please check [`fspp`](https://github.com/azusa0127/fs-promisified-plus) and official document for [`fs`](https://nodejs.org/api/fs.html)
 
-## Lisense
-Copyright (c) 2017 Phoenix Song
+### Changelog
+1.0.5 / 2017-07-10
+  * Updated `fspp` for missing `fs.write()` inheritance.
+  * Changed the `fspp` dependency version to `latest` for future synchronization.
 
+## Lisense
 Licensed under MIT
+Copyright (c) 2017 Phoenix Song

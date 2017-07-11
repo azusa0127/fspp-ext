@@ -1,7 +1,7 @@
 /**
  * fspp-ext - fspp with extended features.
  *
- * @version 1.0.4
+ * @version 1.0.5
  * @author Phoenix Song (github.com/azusa0127)
  */
 const fs = require( `fspp` );
