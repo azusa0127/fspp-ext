@@ -101,9 +101,8 @@ await fs.rm(`/tmp/hello/world/and/again`);
 Please check [`fspp`](https://github.com/azusa0127/fs-promisified-plus) and official document for [`fs`](https://nodejs.org/api/fs.html)
 
 ### Changelog
-1.0.5 / 2017-07-10
-  * Updated `fspp` for missing `fs.write()` inheritance.
-  * Changed the `fspp` dependency version to `latest` for future synchronization.
+1.0.6 / 2017-07-10
+  * Updated `fspp` for missing `fs.write` and `fs.writeFile` inheritance.
 
 ## Lisense
 Licensed under MIT
