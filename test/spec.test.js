@@ -136,7 +136,7 @@ describe(`fspp-ext`, () => {
         );
       });
 
-      it(`Should fail with existing file as dirPath`, async () => {
+      it(`Should fail with existing file as dirPath but sucess when force=true`, async () => {
         const TEST_TEXT_FILE = path.join(TEST_SANDBOX_ROOT, `TEST.txt`);
         fs.writeFileSync(TEST_TEXT_FILE, `This is about to be nothing.`, `utf8`);
         assert.isTrue(fs.existsSync(TEST_TEXT_FILE), `${TEST_TEXT_FILE} should exist pre-test.`);
@@ -149,44 +149,25 @@ describe(`fspp-ext`, () => {
           await fs.ensureDir(TEST_TEXT_FILE);
         } catch (error) {
           assert.isTrue(
-            fs.existsSync(TEST_TEXT_FILE),
-            `${TEST_TEXT_FILE} should still exist post-test.`,
+            fs.statSync(TEST_TEXT_FILE).isFile(),
+            `${TEST_TEXT_FILE} should still be a file post-test.`,
+          );
+          await fs.ensureDir(TEST_TEXT_FILE, true);
+          assert.isTrue(
+            fs.statSync(TEST_TEXT_FILE).isDirectory(),
+            `${TEST_TEXT_FILE} should now be a directory post-test.`,
           );
           assert.equal(
             fs.readdirSync(TEST_SANDBOX_ROOT).length,
             1,
-            `Sandbox should still contain single element.`,
+            `Sandbox should still contain single element post-test.`,
           );
           return;
         }
         assert.fail(null, null, `ensureDir should fail but succeeded.`);
       });
 
-      it(`Should fail with non-existing driver`, async () => {
-        if (process.platform === `win32`) {
-          assert.isFalse(
-            fs.existsSync(NON_EXISTING_PATH),
-            `${NON_EXISTING_PATH} Should not exist.`,
-          );
-          try {
-            await fs.ensureDir(NON_EXISTING_PATH);
-          } catch (error) {
-            return;
-          }
-          assert.fail(null, null, `ensureDir should fail but succeeded.`);
-        }
-      });
-
-      it(`Should fail with forbiden path`, async () => {
-        try {
-          await fs.ensureDir(FORBIDEN_PATH);
-        } catch (error) {
-          return;
-        }
-        assert.fail(null, null, `ensureDir should fail but succeeded.`);
-      });
-
-      it(`Should fail when an intermidiate path is an file`, async () => {
+      it(`Should fail when an intermidiate path is an existing file but sucess when force=true`, async () => {
         assert.isFalse(
           fs.existsSync(TEST_LEVEL1_DIR),
           `${TEST_LEVEL1_DIR} should not exist pre-test.`,
@@ -198,6 +179,35 @@ describe(`fspp-ext`, () => {
         );
         try {
           await fs.ensureDir(TEST_LEVEL2_DIR);
+        } catch (error) {
+          await fs.ensureDir(TEST_LEVEL2_DIR, true);
+          assert.isTrue(
+            fs.statSync(TEST_LEVEL2_DIR).isDirectory(),
+            `${TEST_LEVEL2_DIR} directory should now exist.`,
+          );
+          return;
+        }
+        assert.fail(null, null, `ensureDir should fail but succeeded.`);
+      });
+
+      it(`Should fail with non-existing driver even with force=true`, async () => {
+        if (process.platform === `win32`) {
+          assert.isFalse(
+            fs.existsSync(NON_EXISTING_PATH),
+            `${NON_EXISTING_PATH} Should not exist.`,
+          );
+          try {
+            await fs.ensureDir(NON_EXISTING_PATH, true);
+          } catch (error) {
+            return;
+          }
+          assert.fail(null, null, `ensureDir should fail but succeeded.`);
+        }
+      });
+
+      it(`Should fail with forbiden path even with force=true`, async () => {
+        try {
+          await fs.ensureDir(FORBIDEN_PATH, true);
         } catch (error) {
           return;
         }
@@ -286,10 +296,10 @@ describe(`fspp-ext`, () => {
         );
       });
 
-      it(`Should pass with existing file`, () => {
+      it(`Should fail with existing file as dirPath but sucess when force=true`, () => {
         const TEST_TEXT_FILE = path.join(TEST_SANDBOX_ROOT, `TEST.txt`);
         fs.writeFileSync(TEST_TEXT_FILE, `This is about to be nothing.`, `utf8`);
-        assert.isTrue(fs.existsSync(TEST_TEXT_FILE), `TEST_TEXT_FILE should exist pre-test.`);
+        assert.isTrue(fs.existsSync(TEST_TEXT_FILE), `${TEST_TEXT_FILE} should exist pre-test.`);
         assert.equal(
           fs.readdirSync(TEST_SANDBOX_ROOT).length,
           1,
@@ -299,44 +309,25 @@ describe(`fspp-ext`, () => {
           fs.ensureDirSync(TEST_TEXT_FILE);
         } catch (error) {
           assert.isTrue(
-            fs.existsSync(TEST_TEXT_FILE),
-            `${TEST_TEXT_FILE} should still exist post-test.`,
+            fs.statSync(TEST_TEXT_FILE).isFile(),
+            `${TEST_TEXT_FILE} should still be a file post-test.`,
+          );
+          fs.ensureDirSync(TEST_TEXT_FILE, true);
+          assert.isTrue(
+            fs.statSync(TEST_TEXT_FILE).isDirectory(),
+            `${TEST_TEXT_FILE} should now be a directory post-test.`,
           );
           assert.equal(
             fs.readdirSync(TEST_SANDBOX_ROOT).length,
             1,
-            `Sandbox should still contain single element.`,
+            `Sandbox should still contain single element post-test.`,
           );
           return;
         }
         assert.fail(null, null, `ensureDirSync should fail but succeeded.`);
       });
 
-      it(`Should fail with non-existing driver`, () => {
-        if (process.platform === `win32`) {
-          assert.isFalse(
-            fs.existsSync(NON_EXISTING_PATH),
-            `${NON_EXISTING_PATH} Should not exist.`,
-          );
-          try {
-            fs.ensureDirSync(NON_EXISTING_PATH);
-          } catch (error) {
-            return;
-          }
-          assert.fail(null, null, `ensureDirSync should fail but succeeded.`);
-        }
-      });
-
-      it(`Should fail with forbiden path`, () => {
-        try {
-          fs.ensureDirSync(FORBIDEN_PATH);
-        } catch (error) {
-          return;
-        }
-        assert.fail(null, null, `ensureDirSync should fail but succeeded.`);
-      });
-
-      it(`Should fail when an intermidiate path is an file`, () => {
+      it(`Should fail when an intermidiate path is an existing file but sucess when force=true`, () => {
         assert.isFalse(
           fs.existsSync(TEST_LEVEL1_DIR),
           `${TEST_LEVEL1_DIR} should not exist pre-test.`,
@@ -348,6 +339,35 @@ describe(`fspp-ext`, () => {
         );
         try {
           fs.ensureDirSync(TEST_LEVEL2_DIR);
+        } catch (error) {
+          fs.ensureDirSync(TEST_LEVEL2_DIR, true);
+          assert.isTrue(
+            fs.statSync(TEST_LEVEL2_DIR).isDirectory(),
+            `${TEST_LEVEL2_DIR} directory should now exist.`,
+          );
+          return;
+        }
+        assert.fail(null, null, `ensureDirSync should fail but succeeded.`);
+      });
+
+      it(`Should fail with non-existing driver even with force=true`, () => {
+        if (process.platform === `win32`) {
+          assert.isFalse(
+            fs.existsSync(NON_EXISTING_PATH),
+            `${NON_EXISTING_PATH} Should not exist.`,
+          );
+          try {
+            fs.ensureDirSync(NON_EXISTING_PATH, true);
+          } catch (error) {
+            return;
+          }
+          assert.fail(null, null, `ensureDirSync should fail but succeeded.`);
+        }
+      });
+
+      it(`Should fail with forbiden path even with force=true`, () => {
+        try {
+          fs.ensureDirSync(FORBIDEN_PATH, true);
         } catch (error) {
           return;
         }
