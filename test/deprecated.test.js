@@ -1,7 +1,8 @@
 /**
  * fspp-ext-spectest - BDD unit test for fspp-ext.
+ * (Deprecated)
  *
- * @version 1.0.0
+ * @version 1.1.x
  * @author Phoenix Song (github.com/azusa0127)
  */
 const path = require(`path`);
@@ -9,7 +10,7 @@ const fs = require(`fspp`);
 const { assert } = require(`chai`);
 const { ensurePath, ensurePathSync, rm, rmSync, cp } = require(`../index.js`);
 
-describe.only(`fsextend Spec`, () => {
+describe(`fsextend 1.0 Spec`, () => {
   const SANDBOX_DIR_RELATIVE = `test/sandbox`,
     SANDBOX_DIR_ABSOLUTE = path.resolve(SANDBOX_DIR_RELATIVE),
     LEVEL_1_DIR_TO_BE_CREATED = `${SANDBOX_DIR_RELATIVE}/DummyL1`,

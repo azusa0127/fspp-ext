@@ -12,6 +12,7 @@
  */
 const fspp = require(`fspp`);
 const path = require(`path`);
+const { deprecate } = require(`util`);
 /**
  * ============================================================================
  * Library.
@@ -19,11 +20,83 @@ const path = require(`path`);
  */
 const fsppext = Object.assign({}, fspp, {
   /**
+   * Ensure dirPath is a directory, create the dirPath recursively if not exist.
+   *
+   * @param {string} dirPath target directory path.
+   * @param {bool} force delete dirPath or any inmediate path if that is a file not a directory.
+   *
+   * @exception {Promise.reject<Error>} if any part of the path is an file when force=false.
+   * @exception {Promise.reject<Error>} if the process has no access or permission.
+   */
+  async ensureDir(dirPath, force = false) {
+    const subEnsureCall = async subDir => {
+      if (await fspp.exists(subDir)) {
+        if ((await fspp.lstat(subDir)).isDirectory()) return true;
+        else if (force) await fspp.unlink(subDir);
+        else throw new Error(`An file ${subDir} already exists.`);
+      }
+      const { root, dir } = path.parse(subDir);
+      if (process.platform === `win32`) await fspp.access(root);
+      await subEnsureCall(dir);
+      try {
+        await fspp.mkdir(subDir);
+      } catch (error) {
+        if (!force) throw error;
+        const { mode, uid, gid } = await fspp.lstat(dir);
+        const newMode =
+          uid === process.getuid()
+            ? mode | 0o200
+            : gid === process.getgid() ? mode | 0o220 : mode | 0o222;
+        await fspp.chmod(dir, newMode);
+        await fspp.mkdir(subDir);
+      }
+      return true;
+    };
+    return await subEnsureCall(path.resolve(dirPath));
+  },
+
+  /**
+   * Sync version of ensureDir(2).
+   *
+   * @param {string} dirPath target directory path.
+   * @param {bool} force delete dirPath or any inmediate path if that is a file not a directory.
+   *
+   * @exception {Error} if any part of the path is an file when force=false.
+   * @exception {Error} if the process has no access or permission.
+   */
+  ensureDirSync(dirPath, force = false) {
+    const subEnsureSyncCall = subDir => {
+      if (fspp.existsSync(subDir)) {
+        if (fspp.lstatSync(subDir).isDirectory()) return true;
+        else if (force) fspp.unlinkSync(subDir);
+        else throw new Error(`An file ${subDir} already exists.`);
+      }
+      const { root, dir } = path.parse(subDir);
+      if (process.platform === `win32`) fspp.accessSync(root);
+      subEnsureSyncCall(dir);
+      try {
+        fspp.mkdirSync(subDir);
+      } catch (error) {
+        if (!force) throw error;
+        const { mode, uid, gid } = fspp.lstatSync(dir);
+        const newMode =
+          uid === process.getuid()
+            ? mode | 0o200
+            : gid === process.getgid() ? mode | 0o020 : mode | 0o002;
+        fspp.chmodSync(dir, newMode);
+        fspp.mkdirSync(subDir);
+      }
+      return true;
+    };
+    return subEnsureSyncCall(path.resolve(dirPath));
+  },
+
+  /**
    * Create the Path tree if not exist.
    *
    * @param {string} dirPath target directory path.
    */
-  async ensurePath(dirPath) {
+  ensurePath: deprecate(async dirPath => {
     const subEnsureCall = async subDir => {
       try {
         await fspp.access(subDir);
@@ -36,14 +109,14 @@ const fsppext = Object.assign({}, fspp, {
       }
     };
     await subEnsureCall(path.isAbsolute(dirPath) ? path.normalize(dirPath) : path.resolve(dirPath));
-  },
+  }, `ensurePath() is now deprecated due to ambigious behaviour with files in path, please use ensureDir() instead from fspp-ext ^1.2.0 on.`),
 
   /**
    * Sync version of ensurePath(1).
    *
    * @param {string} dirPath target directory path.
    */
-  ensurePathSync(dirPath) {
+  ensurePathSync: deprecate(dirPath => {
     const subEnsureSyncCall = subDir => {
       try {
         fspp.accessSync(subDir);
@@ -56,7 +129,7 @@ const fsppext = Object.assign({}, fspp, {
       }
     };
     subEnsureSyncCall(path.isAbsolute(dirPath) ? path.normalize(dirPath) : path.resolve(dirPath));
-  },
+  }, `ensurePathSync() is now deprecated due to ambigious behaviour with files in path, please use ensureDirSync() instead from fspp-ext ^1.2.0 on.`),
 
   /**
    * Remove the target dir/file recursively.
@@ -131,7 +204,7 @@ const fsppext = Object.assign({}, fspp, {
 
     const subCopyCall = async (subSrcPath, subDesPath) => {
       await fspp.access(subSrcPath);
-      await fsppext.ensurePath(path.dirname(subDesPath));
+      await fsppext.ensureDir(path.dirname(subDesPath));
       if (await fspp.exists(subDesPath)) {
         if (force) await fsppext.rm(subDesPath);
         else throw new Error(`${subDesPath} already exists!`);
@@ -143,7 +216,7 @@ const fsppext = Object.assign({}, fspp, {
       } else if (sstat.isFile()) {
         await filecopy(subSrcPath, subDesPath);
       } else if (sstat.isDirectory()) {
-        await fsppext.ensurePath(subDesPath);
+        await fsppext.ensureDir(subDesPath);
         const subfiles = await fspp.readdir(subSrcPath);
         await Promise.all(
           subfiles.map(x => subCopyCall(path.join(subSrcPath, x), path.join(subDesPath, x))),
