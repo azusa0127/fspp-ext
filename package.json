@@ -1,6 +1,6 @@
 {
   "name": "fspp-ext",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "fspp with extended features.",
   "main": "index.js",
   "scripts": {
