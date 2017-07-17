@@ -4,7 +4,7 @@
   "description": "fspp with extended features.",
   "main": "index.js",
   "scripts": {
-    "test": "mocha -u bdd --timeout 2000 --colors test"
+    "test": "nyc -r lcov mocha -u bdd --timeout 2000 --colors test"
   },
   "repository": {
     "type": "git",
@@ -36,6 +36,7 @@
   },
   "devDependencies": {
     "chai": "^4.0.2",
-    "mocha": "^3.4.2"
+    "mocha": "^3.4.2",
+    "nyc": "^11.0.3"
   }
 }

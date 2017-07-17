@@ -1,7 +1,7 @@
 /**
  * fspp-ext - fspp with extended features.
  *
- * @version 1.1.0
+ * @version 1.2.0
  * @author Phoenix Song (github.com/azusa0127)
  */
 
@@ -31,26 +31,14 @@ const fsppext = Object.assign({}, fspp, {
   async ensureDir(dirPath, force = false) {
     const subEnsureCall = async subDir => {
       if (await fspp.exists(subDir)) {
-        if ((await fspp.lstat(subDir)).isDirectory()) return true;
+        if ((await fspp.lstat(subDir)).isDirectory()) return;
         else if (force) await fspp.unlink(subDir);
         else throw new Error(`An file ${subDir} already exists.`);
       }
       const { root, dir } = path.parse(subDir);
       if (process.platform === `win32`) await fspp.access(root);
       await subEnsureCall(dir);
-      try {
-        await fspp.mkdir(subDir);
-      } catch (error) {
-        if (!force) throw error;
-        const { mode, uid, gid } = await fspp.lstat(dir);
-        const newMode =
-          uid === process.getuid()
-            ? mode | 0o200
-            : gid === process.getgid() ? mode | 0o220 : mode | 0o222;
-        await fspp.chmod(dir, newMode);
-        await fspp.mkdir(subDir);
-      }
-      return true;
+      await fspp.mkdir(subDir);
     };
     return await subEnsureCall(path.resolve(dirPath));
   },
@@ -67,26 +55,14 @@ const fsppext = Object.assign({}, fspp, {
   ensureDirSync(dirPath, force = false) {
     const subEnsureSyncCall = subDir => {
       if (fspp.existsSync(subDir)) {
-        if (fspp.lstatSync(subDir).isDirectory()) return true;
+        if (fspp.lstatSync(subDir).isDirectory()) return;
         else if (force) fspp.unlinkSync(subDir);
         else throw new Error(`An file ${subDir} already exists.`);
       }
       const { root, dir } = path.parse(subDir);
       if (process.platform === `win32`) fspp.accessSync(root);
       subEnsureSyncCall(dir);
-      try {
-        fspp.mkdirSync(subDir);
-      } catch (error) {
-        if (!force) throw error;
-        const { mode, uid, gid } = fspp.lstatSync(dir);
-        const newMode =
-          uid === process.getuid()
-            ? mode | 0o200
-            : gid === process.getgid() ? mode | 0o020 : mode | 0o002;
-        fspp.chmodSync(dir, newMode);
-        fspp.mkdirSync(subDir);
-      }
-      return true;
+      fspp.mkdirSync(subDir);
     };
     return subEnsureSyncCall(path.resolve(dirPath));
   },
@@ -109,7 +85,7 @@ const fsppext = Object.assign({}, fspp, {
       }
     };
     await subEnsureCall(path.isAbsolute(dirPath) ? path.normalize(dirPath) : path.resolve(dirPath));
-  }, `ensurePath() is now deprecated due to ambigious behaviour with files in path, please use ensureDir() instead from fspp-ext ^1.2.0 on.`),
+  }, `ensurePath() is now deprecated due to ambigious behaviour with files in path, please use ensureDir() instead from fspp-ext ^1.2.0 on, this API will be removed by fspp-ext 2.0.0.`),
 
   /**
    * Sync version of ensurePath(1).
@@ -129,52 +105,87 @@ const fsppext = Object.assign({}, fspp, {
       }
     };
     subEnsureSyncCall(path.isAbsolute(dirPath) ? path.normalize(dirPath) : path.resolve(dirPath));
-  }, `ensurePathSync() is now deprecated due to ambigious behaviour with files in path, please use ensureDirSync() instead from fspp-ext ^1.2.0 on.`),
+  }, `ensurePathSync() is now deprecated due to ambigious behaviour with files in path, please use ensureDirSync() instead from fspp-ext ^1.2.0 on, this API will be removed by fspp-ext 2.0.0.`),
 
   /**
    * Remove the target dir/file recursively.
    *
    * @param {string} dirPath path to be destroyed.
+   * @param {bool} [force=false] Do not prompt when dirPath does not exist and automatically accuires permissions for readonly file/folders.
    *
    * @exception {Promise.reject<Error>} When dirPath is a root path, or non-exist.
    *                    Failing in remove any of the subfiles will also trigger exception.
    */
-  async rm(dirPath) {
+  async rm(dirPath, force = false) {
     const subDestroyCall = async subPath => {
-      await fspp.access(subPath);
-      const dstat = await fspp.lstat(subPath);
-      if (dstat.isFile() || dstat.isSymbolicLink()) {
-        await fspp.unlink(subPath);
-      } else if (dstat.isDirectory()) {
-        const subfiles = await fspp.readdir(subPath);
-        await Promise.all(subfiles.map(x => subDestroyCall(path.join(subPath, x))));
-        await fspp.rmdir(subPath);
+      // const dstat = await fspp.lstat(subPath);
+      try {
+        const dstat = fspp.lstatSync(subPath);
+        if (dstat.isFile() || dstat.isSymbolicLink()) {
+          await fspp.unlink(subPath);
+        } else if (dstat.isDirectory()) {
+          if (force) await fspp.chmod(subPath, 0o777);
+          const subfiles = await fspp.readdir(subPath);
+          await Promise.all(subfiles.map(x => subDestroyCall(path.join(subPath, x))));
+          await fspp.rmdir(subPath);
+        }
+      } catch (error) {
+        if (!force) throw error;
+        switch (error.name) {
+          case `EACCES`:
+            const parent = path.dirname(subPath),
+              originalMode = await fspp.lstat(parent).mode;
+            await fspp.chmod(parent, 0o777);
+            await subDestroyCall(subPath);
+            await fspp.chmod(parent, originalMode);
+          case `ENOENT`:
+            return;
+          default:
+            throw error;
+        }
       }
     };
-    const fmtdPath = path.isAbsolute(dirPath) ? path.normalize(dirPath) : path.resolve(dirPath);
+    const fmtdPath = path.resolve(dirPath);
     if (path.parse(fmtdPath).root === fmtdPath)
       throw new Error(`Destroying the FileSystem root ${fmtdPath} is forbidden!`);
     await subDestroyCall(fmtdPath);
   },
 
   /**
-   * Sync version of rm(1).
+   * Sync version of rm(dirPath [, force]).
    *
    * @param {string} dirPath path to be destroyed.
+   * @param {bool} [force=false] Do not prompt when dirPath does not exist and automatically accuires permissions for readonly folders.
    *
    * @exception {Error} When dirPath is a root path, or non-exist.
    *                    Failing in remove any of the subfiles will also trigger the error.
    */
-  rmSync(dirPath) {
+  rmSync(dirPath, force = false) {
     const subDestroyCallSync = subPath => {
-      fspp.accessSync(subPath);
-      const dstat = fspp.lstatSync(subPath);
-      if (dstat.isFile() || dstat.isSymbolicLink()) {
-        fspp.unlinkSync(subPath);
-      } else if (dstat.isDirectory()) {
-        const subfiles = fspp.readdirSync(subPath);
-        subfiles.forEach(x => subDestroyCallSync(path.join(subPath, x)));
-        fspp.rmdirSync(subPath);
+      try {
+        const dstat = fspp.lstatSync(subPath);
+        if (dstat.isFile() || dstat.isSymbolicLink()) {
+          fspp.unlinkSync(subPath);
+        } else if (dstat.isDirectory()) {
+          if (force) fspp.chmodSync(subPath, 0o777);
+          const subfiles = fspp.readdirSync(subPath);
+          subfiles.forEach(x => subDestroyCallSync(path.join(subPath, x)));
+          fspp.rmdirSync(subPath);
+        }
+      } catch (error) {
+        if (!force) throw error;
+        switch (error.name) {
+          case `EACCES`:
+            const parent = path.dirname(subPath),
+              originalMode = fspp.statSync(parent).mode;
+            fspp.chmodSync(parent, 0o777);
+            subDestroyCallSync(subPath);
+            fspp.chmodSync(parent, originalMode);
+          case `ENOENT`:
+            return;
+          default:
+            throw error;
+        }
       }
     };
     const fmtdPath = path.isAbsolute(dirPath) ? path.normalize(dirPath) : path.resolve(dirPath);
